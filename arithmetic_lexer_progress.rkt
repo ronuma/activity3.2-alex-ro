@@ -1,12 +1,19 @@
 #|
-Activity 2.3
-Rodrigo Nunez Magallanes, A01028310
-Alexandra Barron Córdova,
-Modification of Gilberto Echeverria's Implementation of a DFA
-in order to get a list of tokens and their values when passing a string
-to the function.
-
-
+Implementation of a Deterministic Finite Automaton (DFA)
+A function will receive the definition of a DFA and a string,
+and return whether the string belongs in the language
+A DFA is defined as a state machine, with 3 elements:
+- Transition function
+- Initial state
+- List of acceptable states
+The DFA in this file is used to identify valid arithmetic expressions
+Examples:
+> (evaluate-dfa (dfa delta-arithmetic 'start '(int float exp)) "-234.56")
+'(float exp)
+> (arithmetic-lexer "45.3 - +34 / none")
+'(float op int op var)
+Gilberto Echeverria
+2023-04-13
 |#
 
 #lang racket
@@ -20,7 +27,7 @@ to the function.
 
 (define (arithmetic-lexer strng)
   " Call the function to validate using a specific DFA "
-  (evaluate-dfa (dfa delta-arithmetic 'start '(int float exp var spa par_close)) strng))
+  (evaluate-dfa (dfa delta-arithmetic 'start '(int float exp var spa par_open par_close addition substraction product division asign)) strng))
 
 (define (evaluate-dfa dfa-to-evaluate strng)
   " This function will verify if a string is acceptable by a DFA "
@@ -51,9 +58,9 @@ to the function.
                 ; The new token value being constructed
                 (if found '() (cons (car chars) current-token))))])))
 
-(define (char-operator? char)
+#|(define (char-operator? char)
   " Identify caracters that represent arithmetic operators "
-  (member char '(#\+ #\- #\* #\/ #\= #\^)))
+  (member char '(#\+ #\- #\* #\/ #\= #\^)))|#
 
 (define (delta-arithmetic state char)
   " Transition function to validate numbers
@@ -64,37 +71,38 @@ to the function.
   Accept states: int float exp "
   (case state
     ['start (cond
+       [(eq? char #\() (values 'par_open #f)]
        [(char-numeric? char) (values 'int #f)]
        [(or (eq? char #\+) (eq? char #\-)) (values 'sign #f)]
        [(char-alphabetic? char) (values 'var #f)]
        [(eq? char #\_) (values 'var #f)]
-       [(eq? char #\() (values 'par_open #f)]
        [else (values 'inv #f)])]
     ['sign (cond
        [(char-numeric? char) (values 'int #f)]
-       [(eq? char #\() (values 'par_open #f)]
-       [(char-alphabetic? char) (values 'var #f)]
-       [(eq? char #\_) (values 'var #f)]
        [else (values 'inv #f)])]
     ['int (cond
+       [(eq? char #\)) (values 'par_close #f)]
        [(char-numeric? char) (values 'int #f)]
        [(eq? char #\.) (values 'dot #f)]
        [(or (eq? char #\e) (eq? char #\E)) (values 'e #f)]
-       [(char-operator? char) (values 'op 'int)]
+       [(eq? char #\+) (values 'addition #f)]
+       [(eq? char #\-) (values 'substraction #f)]
+       [(eq? char #\*) (values 'product #f)]
+       [(eq? char #\/) (values 'division #f)]
        [(eq? char #\space) (values 'spa 'int)]
-       [(eq? char #\() (values 'par_open 'int)]
-       [(eq? char #\)) (values 'par_close 'int)]
        [else (values 'inv #f)])]
     ['dot (cond
        [(char-numeric? char) (values 'float #f)]
        [else (values 'inv #f)])]
     ['float (cond
+       [(eq? char #\)) (values 'par_close #f)]
        [(char-numeric? char) (values 'float #f)]
-       [(or (eq? char #\e) (eq? char #\E)) (values 'e #f)]
-       [(char-operator? char) (values 'op 'float)]
+       [(or (eq? char #\e) (eq? char #\E)) 'e]
+       [(eq? char #\+) (values 'addition #f)]
+       [(eq? char #\-) (values 'substraction #f)]
+       [(eq? char #\*) (values 'product #f)]
+       [(eq? char #\/) (values 'division #f)]
        [(eq? char #\space) (values 'spa 'float)]
-       [(eq? char #\() (values 'par_open 'float)]
-       [(eq? char #\)) (values 'par_close 'float)]
        [else (values 'inv #f)])]
     ['e (cond
        [(char-numeric? char) (values 'exp #f)]
@@ -105,18 +113,22 @@ to the function.
        [else (values 'inv #f)])]
     ['exp (cond
        [(char-numeric? char) (values 'exp #f)]
-       [(char-operator? char) (values 'op 'exp)]
+       [(eq? char #\+) (values 'addition #f)]
+       [(eq? char #\-) (values 'substraction #f)]
+       [(eq? char #\*) (values 'product #f)]
+       [(eq? char #\/) (values 'division #f)]
        [(eq? char #\space) (values 'spa 'exp)]
-       [(eq? char #\() (values 'par_open 'exp)]
-       [(eq? char #\)) (values 'par_close 'exp)]
        [else (values 'inv #f)])]
     ['var (cond
        [(char-alphabetic? char) (values 'var #f)]
        [(char-numeric? char) (values 'var #f)]
        [(eq? char #\_) (values 'var #f)]
-       [(char-operator? char) (values 'op 'var)]
+       [(eq? char #\+) (values 'addition #f)]
+       [(eq? char #\-) (values 'substraction #f)]
+       [(eq? char #\*) (values 'product #f)]
+       [(eq? char #\/) (values 'division #f)]
        [(eq? char #\space) (values 'spa 'var)]
-       [(eq? char #\)) (values 'par_close 'var)]
+       [(eq? char #\=) (values 'asign #f)]
        [else (values 'inv #f)])]
     ['op (cond
        [(char-numeric? char) (values 'int 'op)]
@@ -126,10 +138,14 @@ to the function.
        [(eq? char #\space) (values 'op_spa 'op)]
        [else (values 'inv #f)])]
      ['spa (cond
-       [(char-operator? char) (values 'op #f)]
-       [(eq? char #\space) (values 'spa #f)]
        [(eq? char #\() (values 'par_open #f)]
        [(eq? char #\)) (values 'par_close #f)]
+       [(eq? char #\+) (values 'addition #f)]
+       [(eq? char #\-) (values 'substraction #f)]
+       [(eq? char #\*) (values 'product #f)]
+       [(eq? char #\/) (values 'division #f)]
+       
+       [(eq? char #\space) (values 'spa #f)]
        [else (values 'inv #f)])]
     ['op_spa (cond
        [(char-numeric? char) (values 'int #f)]
@@ -137,24 +153,51 @@ to the function.
        [(char-alphabetic? char) (values 'var #f)]
        [(eq? char #\_) (values 'var #f)]
        [(eq? char #\space) (values 'op_spa #f)]
+       [else (values 'inv #f)])]
+    ['addition (cond
+       [(char-numeric? char) (values 'int #f)]
+       [(char-alphabetic? char) (values 'var #f)]
        [(eq? char #\() (values 'par_open #f)]
+       [(eq? char #\space) (values 'spa #f)]
+       [else (values 'inv #f)])]
+    ['substraction (cond
+       [(char-numeric? char) (values 'int #f)]
+       [(char-alphabetic? char) (values 'var #f)]
+       [(eq? char #\() (values 'par_open #f)]
+       [(eq? char #\space) (values 'spa #f)]
+       [else (values 'inv #f)])]
+    ['product (cond
+       [(char-numeric? char) (values 'int #f)]
+       [(char-alphabetic? char) (values 'var #f)]
+       [(eq? char #\() (values 'par_open #f)]
+       [(eq? char #\space) (values 'spa #f)]
+       [else (values 'inv #f)])]
+    ['division (cond
+       [(char-numeric? char) (values 'int #f)]
+       [(char-alphabetic? char) (values 'var #f)]
+       [(eq? char #\() (values 'par_open #f)]
+       [(eq? char #\space) (values 'spa #f)]
+       [else (values 'inv #f)])]
+    ['asign (cond
+       [(char-numeric? char) (values 'int #f)]
+       [(char-alphabetic? char) (values 'var #f)]
+       [(eq? char #\() (values 'par_open #f)]
+       [(eq? char #\space) (values 'spa #f)]
+       [(or (eq? char #\+) (eq? char #\-)) (values 'sign #f)]
        [else (values 'inv #f)])]
     ['par_open (cond
-       [(char-numeric? char) (values 'int 'par_open)]
-       [(eq? char #\() (values 'par_open 'par_open)]
-       [(or (eq? char #\+) (eq? char #\-)) (values 'sign 'par_open)]
-       [(char-alphabetic? char) (values 'var 'par_open)]
-       [(eq? char #\_) (values 'var 'par_open)]
-       [(eq? char #\space) (values 'spa 'par_open)]
+       [(char-numeric? char) (values 'int #f)]
+       [(char-alphabetic? char) (values 'var #f)]
+       [(eq? char #\() (values 'par_open #f)]
+       [(eq? char #\space) (values 'spa #f)]
+       [(or (eq? char #\+) (eq? char #\-)) (values 'sign #f)]
        [else (values 'inv #f)])]
     ['par_close (cond
-       [(char-numeric? char) (values 'int 'par_close)]
-       [(char-operator? char) (values 'op 'par_close)]
-       [(eq? char #\() (values 'par_open 'par_close)]
-       [(char-alphabetic? char) (values 'var 'par_close)]
-       [(eq? char #\_) (values 'var 'par_close)]
-       [(or (eq? char #\+) (eq? char #\-)) (values 'sign 'par_close)]
-       [(eq? char #\space) (values 'spa 'par_close)]
-       [else (values 'inv #f)]
-       )]
+       [(eq? char #\space) (values 'spa #f)]
+       [(eq? char #\+) (values 'addition #f)]
+       [(eq? char #\-) (values 'substraction #f)]
+       [(eq? char #\*) (values 'product #f)]
+       [(eq? char #\/) (values 'division #f)]
+       [else (values 'inv #f)])]
+    
     [else (values 'inv #f)]))
