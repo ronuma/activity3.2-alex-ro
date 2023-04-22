@@ -139,6 +139,7 @@ to the function.
      ['spa (cond
        [(char-operator? char) (values 'op #f)]
        [(char-alphabetic? char) (values 'var #f)]
+       [(eq? char #\_) (values 'var #f)]
        [(eq? char #\space) (values 'spa #f)]
        [(eq? char #\() (values 'par_open #f)]
        [(eq? char #\)) (values 'par_close #f)]
