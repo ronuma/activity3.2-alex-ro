@@ -63,6 +63,7 @@ to the function.
   Initial state: start
   Accept states: int float exp "
   (case state
+    
     ['start (cond
        [(char-numeric? char) (values 'int #f)]
        [(or (eq? char #\+) (eq? char #\-)) (values 'sign #f)]
@@ -70,12 +71,14 @@ to the function.
        [(eq? char #\_) (values 'var #f)]
        [(eq? char #\() (values 'par_open #f)]
        [else (values 'inv #f)])]
+    
     ['sign (cond
        [(char-numeric? char) (values 'int #f)]
        [(eq? char #\() (values 'par_open #f)]
        [(char-alphabetic? char) (values 'var #f)]
        [(eq? char #\_) (values 'var #f)]
        [else (values 'inv #f)])]
+    
     ['int (cond
        [(char-numeric? char) (values 'int #f)]
        [(eq? char #\.) (values 'dot #f)]
@@ -85,9 +88,11 @@ to the function.
        [(eq? char #\() (values 'par_open 'int)]
        [(eq? char #\)) (values 'par_close 'int)]
        [else (values 'inv #f)])]
+    
     ['dot (cond
        [(char-numeric? char) (values 'float #f)]
        [else (values 'inv #f)])]
+    
     ['float (cond
        [(char-numeric? char) (values 'float #f)]
        [(or (eq? char #\e) (eq? char #\E)) (values 'e #f)]
@@ -96,13 +101,16 @@ to the function.
        [(eq? char #\() (values 'par_open 'float)]
        [(eq? char #\)) (values 'par_close 'float)]
        [else (values 'inv #f)])]
+    
     ['e (cond
        [(char-numeric? char) (values 'exp #f)]
        [(or (eq? char #\+) (eq? char #\-)) (values 'e_sign #f)]
        [else (values 'inv #f)])]
+    
     ['e_sign (cond
        [(char-numeric? char) (values 'exp #f)]
        [else (values 'inv #f)])]
+    
     ['exp (cond
        [(char-numeric? char) (values 'exp #f)]
        [(char-operator? char) (values 'op 'exp)]
@@ -110,6 +118,7 @@ to the function.
        [(eq? char #\() (values 'par_open 'exp)]
        [(eq? char #\)) (values 'par_close 'exp)]
        [else (values 'inv #f)])]
+    
     ['var (cond
        [(char-alphabetic? char) (values 'var #f)]
        [(char-numeric? char) (values 'var #f)]
@@ -118,6 +127,7 @@ to the function.
        [(eq? char #\space) (values 'spa 'var)]
        [(eq? char #\)) (values 'par_close 'var)]
        [else (values 'inv #f)])]
+    
     ['op (cond
        [(char-numeric? char) (values 'int 'op)]
        [(or (eq? char #\+) (eq? char #\-)) (values 'sign 'op)]
@@ -125,12 +135,15 @@ to the function.
        [(eq? char #\_) (values 'var 'op)]
        [(eq? char #\space) (values 'op_spa 'op)]
        [else (values 'inv #f)])]
+    
      ['spa (cond
        [(char-operator? char) (values 'op #f)]
+       [(char-alphabetic? char) (values 'var #f)]
        [(eq? char #\space) (values 'spa #f)]
        [(eq? char #\() (values 'par_open #f)]
        [(eq? char #\)) (values 'par_close #f)]
        [else (values 'inv #f)])]
+    
     ['op_spa (cond
        [(char-numeric? char) (values 'int #f)]
        [(or (eq? char #\+) (eq? char #\-)) (values 'sign #f)]
@@ -139,6 +152,7 @@ to the function.
        [(eq? char #\space) (values 'op_spa #f)]
        [(eq? char #\() (values 'par_open #f)]
        [else (values 'inv #f)])]
+    
     ['par_open (cond
        [(char-numeric? char) (values 'int 'par_open)]
        [(eq? char #\() (values 'par_open 'par_open)]
@@ -147,9 +161,9 @@ to the function.
        [(eq? char #\_) (values 'var 'par_open)]
        [(eq? char #\space) (values 'spa 'par_open)]
        [else (values 'inv #f)])]
+    
     ['par_close (cond
        [(char-numeric? char) (values 'int 'par_close)]
-       [(char-operator? char) (values 'op 'par_close)]
        [(eq? char #\() (values 'par_open 'par_close)]
        [(char-alphabetic? char) (values 'var 'par_close)]
        [(eq? char #\_) (values 'var 'par_close)]
@@ -157,4 +171,5 @@ to the function.
        [(eq? char #\space) (values 'spa 'par_close)]
        [else (values 'inv #f)]
        )]
+    
     [else (values 'inv #f)]))
