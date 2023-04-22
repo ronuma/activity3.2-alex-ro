@@ -164,6 +164,7 @@ to the function.
     
     ['par_close (cond
        [(char-numeric? char) (values 'int 'par_close)]
+       [(char-operator? char) (values 'op 'par_close)]
        [(eq? char #\() (values 'par_open 'par_close)]
        [(char-alphabetic? char) (values 'var 'par_close)]
        [(eq? char #\_) (values 'var 'par_close)]
